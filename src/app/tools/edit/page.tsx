@@ -4945,8 +4945,8 @@ function detectFontDetails(fontName?: string, styleObj?: any) {
                   // Precision line-level or snug single-line mask coordinates (ZERO spillover to adjacent lines)
                   const fallbackFSize = block.fontSize || 12;
                   const fallbackScreenBaselineY = (rawPageH - (block.origPdfY ?? block.pdfY)) * scale;
-                  const fallbackMaskTop = fallbackScreenBaselineY - (fallbackFSize * scale * 0.76);
-                  const fallbackMaskHeight = fallbackFSize * scale * 0.81;
+                  const fallbackMaskTop = fallbackScreenBaselineY - (fallbackFSize * scale * 0.84);
+                  const fallbackMaskHeight = fallbackFSize * scale * 1.05;
                   const fallbackMaskLeft = (block.origPdfX ?? block.pdfX) * scale;
                   const fallbackMaskWidth = (block.origPdfWidth ?? block.pdfWidth) * scale;
 
@@ -4958,8 +4958,11 @@ function detectFontDetails(fontName?: string, styleObj?: any) {
                           block.children.map((child, ci) => {
                             const cFSize = child.height || block.fontSize || 12;
                             const cScreenBaselineY = (rawPageH - child.y) * scale;
-                            const cMaskTop = cScreenBaselineY - (cFSize * scale * 0.80);
-                            const cMaskHeight = cFSize * scale * 0.95;
+                            const cMaskTop = cScreenBaselineY - (cFSize * scale * 0.84);
+                            const nextChild = block.children[ci + 1];
+                            const cMaskHeight = (nextChild && (child.y > nextChild.y))
+                              ? (child.y - nextChild.y) * scale
+                              : (cFSize * scale * 1.04);
                             const cMaskLeft = (child.x - 0.5) * scale;
                             const cMaskWidth = (child.width + 1) * scale;
 
