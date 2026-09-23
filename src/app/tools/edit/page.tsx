@@ -707,8 +707,10 @@ function InPlaceTextEditor({
     const html = e.currentTarget.innerHTML;
     textRef.current = text;
     block.currentText = text;
-    if (html && html !== text) {
+    if (html && /<(b|strong|i|em|span|font|mark)\b/i.test(html)) {
       block.richHtml = html;
+    } else {
+      block.richHtml = undefined;
     }
     block.isModified = true;
 
@@ -750,6 +752,7 @@ function InPlaceTextEditor({
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     e.stopPropagation();
+    e.nativeEvent.stopImmediatePropagation();
     if (e.key === "Escape") {
       e.preventDefault();
       onCancel();
@@ -757,16 +760,20 @@ function InPlaceTextEditor({
       e.preventDefault();
       const text = editorRef.current?.innerText ?? textRef.current;
       const html = editorRef.current?.innerHTML;
-      if (html && html !== text) {
+      if (html && /<(b|strong|i|em|span|font|mark)\b/i.test(html)) {
         block.richHtml = html;
+      } else {
+        block.richHtml = undefined;
       }
       onCommit(text);
     } else if (e.key === "Enter" && !e.shiftKey && !block.currentText.includes("\n")) {
       e.preventDefault();
       const text = editorRef.current?.innerText ?? textRef.current;
       const html = editorRef.current?.innerHTML;
-      if (html && html !== text) {
+      if (html && /<(b|strong|i|em|span|font|mark)\b/i.test(html)) {
         block.richHtml = html;
+      } else {
+        block.richHtml = undefined;
       }
       onCommit(text);
     }
@@ -775,8 +782,10 @@ function InPlaceTextEditor({
   const handleBlur = (e: React.FocusEvent) => {
     const text = editorRef.current?.innerText ?? textRef.current;
     const html = editorRef.current?.innerHTML;
-    if (html && html !== text) {
+    if (html && /<(b|strong|i|em|span|font|mark)\b/i.test(html)) {
       block.richHtml = html;
+    } else {
+      block.richHtml = undefined;
     }
     onCommit(text);
   };
@@ -928,6 +937,10 @@ export default function EditTool() {
   // Selection & Elements State
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
   const [editingBlockId, setEditingBlockId] = useState<string | null>(null);
+  const editingBlockIdRef = useRef<string | null>(editingBlockId);
+  editingBlockIdRef.current = editingBlockId;
+  const selectedElementIdRef = useRef<string | null>(selectedElementId);
+  selectedElementIdRef.current = selectedElementId;
   const [pageTextBlocks, setPageTextBlocks] = useState<Record<number, ExistingTextBlock[]>>({});
   const [customElements, setCustomElements] = useState<CustomElement[]>([]);
   const [drawingStrokes, setDrawingStrokes] = useState<DrawingStroke[]>([]);
@@ -1473,6 +1486,9 @@ export default function EditTool() {
     const textChanged = trimmed !== blk.originalText;
     blk.currentText = trimmed;
     blk.lineCount = trimmed.split("\n").length;
+    if (blk.richHtml && !/<(b|strong|i|em|span|font|mark)\b/i.test(blk.richHtml)) {
+      blk.richHtml = undefined;
+    }
     const isMoved = blk.origPdfX !== undefined && (
       Math.abs(blk.pdfX - blk.origPdfX) > 2 || 
       Math.abs(blk.pdfY - (blk.origPdfY ?? blk.pdfY)) > 2
@@ -1760,15 +1776,37 @@ export default function EditTool() {
 
   // Keyboard Shortcuts (Ctrl+Z, Ctrl+Y, Spacebar Pan)
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
+    const isTypingActive = (e: KeyboardEvent) => {
+      if (editingBlockIdRef.current !== null) return true;
+      const activeEl = document.activeElement as HTMLElement | null;
+      if (
+        activeEl && (
+          activeEl.tagName === "INPUT" ||
+          activeEl.tagName === "TEXTAREA" ||
+          activeEl.isContentEditable ||
+          Boolean(activeEl.closest?.('[contenteditable="true"]')) ||
+          Boolean(activeEl.closest?.('input, textarea'))
+        )
+      ) {
+        return true;
+      }
       const target = e.target as HTMLElement | null;
       if (
         target && (
           target.tagName === "INPUT" ||
           target.tagName === "TEXTAREA" ||
-          target.isContentEditable
+          target.isContentEditable ||
+          Boolean(target.closest?.('[contenteditable="true"]')) ||
+          Boolean(target.closest?.('input, textarea'))
         )
       ) {
+        return true;
+      }
+      return false;
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (isTypingActive(e)) {
         return;
       }
 
@@ -1782,17 +1820,18 @@ export default function EditTool() {
       } else if (e.code === "Space" && activeTool !== "hand") {
         e.preventDefault();
         setActiveTool("hand");
-      } else if ((e.key === "Delete" || e.key === "Backspace") && selectedElementId && !editingBlockId) {
+      } else if ((e.key === "Delete" || e.key === "Backspace") && selectedElementIdRef.current && !editingBlockIdRef.current) {
         e.preventDefault();
-        const targetCustom = customElements.find(el => el.id === selectedElementId);
+        const currentSelId = selectedElementIdRef.current;
+        const targetCustom = customElements.find(el => el.id === currentSelId);
         if (targetCustom) {
-          setCustomElements(prev => prev.filter(el => el.id !== selectedElementId));
+          setCustomElements(prev => prev.filter(el => el.id !== currentSelId));
           setSelectedElementId(null);
           saveSnapshot("Delete Element");
         } else {
           Object.keys(pageTextBlocks).forEach(pStr => {
             const pIdx = parseInt(pStr, 10);
-            const blk = (pageTextBlocks[pIdx] || []).find(b => b.id === selectedElementId);
+            const blk = (pageTextBlocks[pIdx] || []).find(b => b.id === currentSelId);
             if (blk) {
               blk.isDeleted = true;
               blk.isModified = true;
@@ -1806,14 +1845,7 @@ export default function EditTool() {
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (
-        target && (
-          target.tagName === "INPUT" ||
-          target.tagName === "TEXTAREA" ||
-          target.isContentEditable
-        )
-      ) {
+      if (isTypingActive(e)) {
         return;
       }
 
@@ -5033,7 +5065,7 @@ function detectFontDetails(fontName?: string, styleObj?: any) {
                           }}
                           title="Single-click to move/resize, double-click to edit text"
                         >
-                          {block.richHtml ? (
+                          {block.richHtml && /<(b|strong|i|em|span|font|mark)\b/i.test(block.richHtml) ? (
                             <div
                               className="w-full h-full pointer-events-none select-none"
                               dangerouslySetInnerHTML={{ __html: block.richHtml }}
@@ -5545,12 +5577,13 @@ function detectFontDetails(fontName?: string, styleObj?: any) {
                                 onClick={(e) => e.stopPropagation()}
                                 onFocus={() => saveSnapshot("Edit text box")}
                                 onInput={(e) => {
-                                  elem.richHtml = e.currentTarget.innerHTML;
+                                  elem.richHtml = /<(b|strong|i|em|span|font|mark)\b/i.test(e.currentTarget.innerHTML) ? e.currentTarget.innerHTML : undefined;
                                   elem.text = e.currentTarget.innerText;
                                   elem.currentText = e.currentTarget.innerText;
                                 }}
                                 onKeyDown={(e) => {
                                   e.stopPropagation();
+                                  e.nativeEvent.stopImmediatePropagation();
                                   if (e.key === "Escape") {
                                     e.preventDefault();
                                     setEditingBlockId(null);
@@ -5561,7 +5594,7 @@ function detectFontDetails(fontName?: string, styleObj?: any) {
                                   }
                                 }}
                                 onBlur={(e) => {
-                                  elem.richHtml = e.currentTarget.innerHTML;
+                                  elem.richHtml = /<(b|strong|i|em|span|font|mark)\b/i.test(e.currentTarget.innerHTML) ? e.currentTarget.innerHTML : undefined;
                                   elem.text = e.currentTarget.innerText;
                                   elem.currentText = e.currentTarget.innerText;
                                   setEditingBlockId(null);
