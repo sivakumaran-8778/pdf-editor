@@ -571,6 +571,12 @@ interface ExistingTextBlock {
   lineCount?: number;
   rotation?: number;
   richHtml?: string;
+  children?: { x: number; y: number; width: number; height: number; text: string }[];
+  origFontFamily?: string;
+  origFontSize?: number;
+  origIsBold?: boolean;
+  origIsItalic?: boolean;
+  origColor?: string;
 }
 
 // Static Mask for Original PDF Text ("Static Mask + Transparent Overlay" Pattern)
@@ -586,6 +592,53 @@ export interface OriginalTextMask {
   pdfY: number;
   pdfWidth: number;
   pdfHeight: number;
+}
+
+/**
+ * Accurately determines if an existing text block has been modified by the user.
+ * Guards against false positives from detected PDF bold/italic/color flags.
+ */
+function checkIsBlockModified(block: ExistingTextBlock): boolean {
+  if (block.isDeleted) return true;
+  if (block.currentText !== block.originalText) return true;
+
+  // Position change check (PDF coordinates)
+  if (block.origPdfX !== undefined && Math.abs(block.pdfX - block.origPdfX) > 2) return true;
+  if (block.origPdfY !== undefined && Math.abs(block.pdfY - block.origPdfY) > 2) return true;
+
+  // Explicit user resizing
+  if (block.isManuallyResized) return true;
+
+  // Font size change
+  if (block.origFontSize !== undefined && Math.abs(block.fontSize - block.origFontSize) > 0.5) return true;
+
+  // Font family change
+  if (block.origFontFamily !== undefined && block.fontFamily !== block.origFontFamily) return true;
+
+  // Bold formatting change
+  const curIsBold = block.fontWeight === "bold" || !!block.isBold;
+  if (block.origIsBold !== undefined && curIsBold !== !!block.origIsBold) return true;
+
+  // Italic formatting change
+  const curIsItalic = block.fontStyle === "italic" || !!block.isItalic;
+  if (block.origIsItalic !== undefined && curIsItalic !== !!block.origIsItalic) return true;
+
+  // Color change
+  if (block.origColor !== undefined && block.color) {
+    const curNorm = normalizeCssColor(block.color);
+    const origNorm = normalizeCssColor(block.origColor);
+    if (curNorm && origNorm && curNorm !== origNorm) return true;
+  }
+
+  // Rich HTML change
+  if (block.richHtml && block.richHtml !== block.originalText && block.richHtml !== block.currentText) {
+    if (/<(b|strong|i|em|span|font|mark)\b/i.test(block.richHtml)) return true;
+  }
+
+  // Fallback if orig values were not captured
+  if (block.origFontSize === undefined && block.isModified) return true;
+
+  return false;
 }
 
 // Floating custom element (Text, Image, Redaction, Highlight, Shapes, Arrows)
@@ -2063,7 +2116,7 @@ function detectFontDetails(fontName?: string, styleObj?: any) {
     fontFamily = "Playfair Display";
   } else if (combined.includes("merriweather")) {
     fontFamily = "Merriweather";
-  } else if (combined.includes("courier") || combined.includes("consolas") || combined.includes("mono")) {
+  } else if (combined.includes("courier") || combined.includes("consolas") || combined.includes("mono") || combined.includes("code") || combined.includes("menlo")) {
     fontFamily = "Courier";
   } else if (combined.includes("roboto")) {
     fontFamily = "Roboto";
@@ -2128,6 +2181,12 @@ function detectFontDetails(fontName?: string, styleObj?: any) {
 
         return {
           ...block,
+          children: block.children,
+          origFontFamily: block.fontFamily,
+          origFontSize: block.fontSize,
+          origIsBold: !!block.isBold,
+          origIsItalic: !!block.isItalic,
+          origColor: block.color || "#000000",
           pdfHeight: calculatedPdfH,
           origPdfX: block.pdfX,
           origPdfY: block.pdfY,
@@ -3005,46 +3064,48 @@ function detectFontDetails(fontName?: string, styleObj?: any) {
         const pIdx = parseInt(pageStr, 10);
         const blocks = pageTextBlocks[pIdx] || [];
         for (const block of blocks) {
-          const isTextModified = block.currentText !== block.originalText;
-          const isMoved = block.origPdfX !== undefined && (
-            Math.abs(block.pdfX - block.origPdfX) > 2 || 
-            Math.abs(block.pdfY - (block.origPdfY ?? block.pdfY)) > 2
-          );
-          const isFormattingModified = !!(
-            (block.fontWeight === "bold" || block.isBold) ||
-            (block.fontStyle === "italic" || block.isItalic) ||
-            (block.color && block.color !== "#000000" && block.color !== "rgb(0, 0, 0)") ||
-            block.isManuallyResized
-          );
-          const isModified = !!block.isModified || isTextModified || isMoved || isFormattingModified || !!block.isDeleted;
+          const isModified = checkIsBlockModified(block);
 
           if (isModified) {
-            const origX = block.origPdfX !== undefined ? block.origPdfX : block.pdfX;
-            const origY = block.origPdfY !== undefined ? block.origPdfY : block.pdfY;
-            const origW = block.origPdfWidth !== undefined ? block.origPdfWidth : block.pdfWidth;
-            const origH = block.origPdfHeight !== undefined ? block.origPdfHeight : block.pdfHeight;
+            // Generate tight per-line redaction rectangles to completely avoid collateral erasure
+            if (block.children && block.children.length > 0) {
+              for (const child of block.children) {
+                const fSize = child.height || block.fontSize || 12;
+                remainingRedactions.push({
+                  pageIndex: pIdx,
+                  pdfRect: {
+                    x: child.x - 1,
+                    y: child.y - (fSize * 0.22),
+                    width: child.width + 2,
+                    height: fSize * 1.04,
+                  },
+                });
+              }
+            } else {
+              const origX = block.origPdfX !== undefined ? block.origPdfX : block.pdfX;
+              const origY = block.origPdfY !== undefined ? block.origPdfY : block.pdfY;
+              const origW = block.origPdfWidth !== undefined ? block.origPdfWidth : block.pdfWidth;
+              const origH = block.origPdfHeight !== undefined ? block.origPdfHeight : block.pdfHeight;
+              const fSize = block.fontSize || 12;
+              const redactY = block.minY !== undefined
+                ? block.minY - (fSize * 0.22)
+                : (origY - (fSize * 0.22));
+              const redactH = (block.minY !== undefined && block.maxY !== undefined)
+                ? (block.maxY - block.minY) + (fSize * 0.22)
+                : origH;
+              const redactX = (block.minX !== undefined ? block.minX : origX) - 1;
+              const redactW = Math.max(origW, (block.maxX !== undefined && block.minX !== undefined) ? (block.maxX - block.minX) : origW) + 2;
 
-            // In PDF coordinate space, (0,0) is bottom-left and rectangles start at bottom-left.
-            // block.pdfY / origY is the first line's baseline.
-            // Calculate accurate bottom-anchored redaction rectangle covering all lines and descenders:
-            const redactY = block.minY !== undefined
-              ? block.minY - (block.fontSize * 0.25)
-              : (origY - origH);
-            const redactH = (block.minY !== undefined && block.maxY !== undefined)
-              ? (block.maxY - block.minY) + (block.fontSize * 0.45)
-              : origH * 1.25;
-            const redactX = (block.minX !== undefined ? block.minX : origX) - 2;
-            const redactW = Math.max(origW, (block.maxX !== undefined && block.minX !== undefined) ? (block.maxX - block.minX) : origW) + 6;
-
-            remainingRedactions.push({
-              pageIndex: pIdx,
-              pdfRect: {
-                x: redactX,
-                y: redactY,
-                width: redactW,
-                height: redactH,
-              },
-            });
+              remainingRedactions.push({
+                pageIndex: pIdx,
+                pdfRect: {
+                  x: redactX,
+                  y: redactY,
+                  width: redactW,
+                  height: redactH,
+                },
+              });
+            }
           }
         }
       });
@@ -3097,46 +3158,48 @@ function detectFontDetails(fontName?: string, styleObj?: any) {
 
         const blocks = pageTextBlocks[pIdx] || [];
         for (const block of blocks) {
-          const isTextModified = block.currentText !== block.originalText;
-          const isMoved = block.origPdfX !== undefined && (
-            Math.abs(block.pdfX - block.origPdfX) > 2 || 
-            Math.abs(block.pdfY - (block.origPdfY ?? block.pdfY)) > 2
-          );
-          const isFormattingModified = !!(
-            (block.fontWeight === "bold" || block.isBold) ||
-            (block.fontStyle === "italic" || block.isItalic) ||
-            (block.color && block.color !== "#000000" && block.color !== "rgb(0, 0, 0)") ||
-            block.isManuallyResized ||
-            block.richHtml
-          );
-          const isModified = !!block.isModified || isTextModified || isMoved || isFormattingModified || !!block.isDeleted;
+          const isModified = checkIsBlockModified(block);
 
-          // Only draw if NOT deleted and has non-empty text
+          // Only draw if modified, NOT deleted, and has non-empty text
           if (isModified && !block.isDeleted && block.currentText.trim().length > 0) {
-            // Fail-safe PDF background mask: Draw a solid rectangle over original text area
+            // Fail-safe PDF background mask: Draw tight per-line solid rectangles over original text area
             // ensuring zero ghosting or character overlap even if MuPDF stream sanitization misses.
-            const origX = block.origPdfX !== undefined ? block.origPdfX : block.pdfX;
-            const origY = block.origPdfY !== undefined ? block.origPdfY : block.pdfY;
-            const origW = block.origPdfWidth !== undefined ? block.origPdfWidth : block.pdfWidth;
-            const origH = block.origPdfHeight !== undefined ? block.origPdfHeight : block.pdfHeight;
-            const redactY = block.minY !== undefined
-              ? block.minY - (block.fontSize * 0.25)
-              : (origY - origH);
-            const redactH = (block.minY !== undefined && block.maxY !== undefined)
-              ? (block.maxY - block.minY) + (block.fontSize * 0.45)
-              : origH * 1.25;
-            const redactX = (block.minX !== undefined ? block.minX : origX) - 2;
-            const redactW = Math.max(origW, (block.maxX !== undefined && block.minX !== undefined) ? (block.maxX - block.minX) : origW) + 6;
+            if (block.children && block.children.length > 0) {
+              for (const child of block.children) {
+                const fSize = child.height || block.fontSize || 12;
+                page.drawRectangle({
+                  x: child.x - 1,
+                  y: child.y - (fSize * 0.22),
+                  width: child.width + 2,
+                  height: fSize * 1.04,
+                  color: parseColorToRgb(block.maskColor || "#ffffff"),
+                });
+              }
+            } else {
+              const origX = block.origPdfX !== undefined ? block.origPdfX : block.pdfX;
+              const origY = block.origPdfY !== undefined ? block.origPdfY : block.pdfY;
+              const origW = block.origPdfWidth !== undefined ? block.origPdfWidth : block.pdfWidth;
+              const origH = block.origPdfHeight !== undefined ? block.origPdfHeight : block.pdfHeight;
+              const fSize = block.fontSize || 12;
+              const redactY = block.minY !== undefined
+                ? block.minY - (fSize * 0.22)
+                : (origY - (fSize * 0.22));
+              const redactH = (block.minY !== undefined && block.maxY !== undefined)
+                ? (block.maxY - block.minY) + (fSize * 0.22)
+                : origH;
+              const redactX = (block.minX !== undefined ? block.minX : origX) - 1;
+              const redactW = Math.max(origW, (block.maxX !== undefined && block.minX !== undefined) ? (block.maxX - block.minX) : origW) + 2;
 
-            page.drawRectangle({
-              x: redactX,
-              y: redactY,
-              width: redactW,
-              height: redactH,
-              color: parseColorToRgb(block.maskColor || "#ffffff"),
-            });
+              page.drawRectangle({
+                x: redactX,
+                y: redactY,
+                width: redactW,
+                height: redactH,
+                color: parseColorToRgb(block.maskColor || "#ffffff"),
+              });
+            }
 
-            if (block.richHtml && block.richHtml !== block.currentText) {
+            if (block.richHtml && block.richHtml !== block.currentText && /<(b|strong|i|em|span|font|mark)\b/i.test(block.richHtml)) {
               const spans = parseRichTextSpans(
                 block.richHtml,
                 block.fontFamily,
@@ -3185,14 +3248,40 @@ function detectFontDetails(fontName?: string, styleObj?: any) {
               const isItalic = block.fontStyle === "italic" || !!block.isItalic;
               const { font, isCustom } = await pickFontAsync(block.fontFamily, isBold, isItalic);
               const size = block.fontSize || 12;
-              const lineHeight = size * 1.25;
+
+              // Calculate movement delta from origPdfX/origPdfY
+              const origBaseX = block.origPdfX !== undefined ? block.origPdfX : block.pdfX;
+              const origBaseY = block.origPdfY !== undefined ? block.origPdfY : block.pdfY;
+              const moveDx = block.pdfX - origBaseX;
+              const moveDy = block.pdfY - origBaseY;
+
+              // Calculate measured line height from children if available
+              let measuredLineHeight = size * 1.25;
+              if (block.children && block.children.length >= 2) {
+                const diff = Math.abs(block.children[0].y - block.children[1].y);
+                if (diff > 0.5) {
+                  measuredLineHeight = diff;
+                }
+              }
 
               lines.forEach((line, index) => {
                 const safeText = sanitizeTextForPdf(line, isCustom);
+                if (safeText.length === 0) return;
+
+                // If child coordinates exist for this line index, use child's exact baseline and X indent!
+                let lineX = block.pdfX;
+                let lineY = block.pdfY - (index * measuredLineHeight);
+
+                if (block.children && block.children[index]) {
+                  lineX = block.children[index].x + moveDx;
+                  lineY = block.children[index].y + moveDy;
+                } else if (index > 0 && block.children && block.children[index - 1]) {
+                  lineY = (block.children[index - 1].y + moveDy) - measuredLineHeight;
+                }
+
                 page.drawText(safeText, {
-                  x: block.pdfX,
-                  // Subtract (index * lineHeight) to move down for each new line
-                  y: block.pdfY - (index * lineHeight),
+                  x: lineX,
+                  y: lineY,
                   size,
                   font,
                   color: textColor,
@@ -4814,19 +4903,7 @@ function detectFontDetails(fontName?: string, styleObj?: any) {
                 {currentPageBlocks.map((block) => {
                   const isSelected = selectedElementId === block.id;
                   const isDeleted = !!block.isDeleted;
-                  const isTextModified = block.currentText !== block.originalText;
-                  const isMoved = block.origPdfX !== undefined && (
-                    Math.abs(block.pdfX - block.origPdfX) > 2 || 
-                    Math.abs(block.pdfY - (block.origPdfY ?? block.pdfY)) > 2
-                  );
-                  const isFormattingModified = !!(
-                    (block.fontWeight === "bold" || block.isBold) ||
-                    (block.fontStyle === "italic" || block.isItalic) ||
-                    (block.color && block.color !== "#000000" && block.color !== "rgb(0, 0, 0)") ||
-                    block.isManuallyResized
-                  );
-                  // Strictly modified if flagged by updateBlock, text changed, moved, formatted, or deleted
-                  const isModified = !!block.isModified || isTextModified || isMoved || isFormattingModified || isDeleted;
+                  const isModified = checkIsBlockModified(block);
 
                   // Measure visual width dynamically so box matches text length snugly
                   const currentTextVisualW = measureExactTextWidth(

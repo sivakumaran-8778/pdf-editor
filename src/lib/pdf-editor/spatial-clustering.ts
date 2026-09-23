@@ -34,6 +34,7 @@ export interface ClusteredBlockData {
   isDeleted: boolean;
   isManuallyResized?: boolean;
   lineCount: number;
+  children?: { x: number; y: number; width: number; height: number; text: string }[];
 }
 
 interface LineSegment {
@@ -269,6 +270,7 @@ export function clusterPdfTextItems(
       isDeleted: false,
       isManuallyResized: false,
       lineCount: b.lineCount,
+      children: b.children,
     };
   });
 }

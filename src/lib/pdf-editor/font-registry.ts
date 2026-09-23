@@ -200,14 +200,21 @@ export async function embedCustomOrStandardFont(
   }
 
   // 3. Fallback to Standard 14 PostScript fonts
-  if (cleanFamily.includes("times") || cleanFamily.includes("georgia") || cleanFamily.includes("garamond") || cleanFamily.includes("serif")) {
+  // Check Monospace / Code first
+  if (
+    cleanFamily.includes("courier") || 
+    cleanFamily.includes("consolas") || 
+    cleanFamily.includes("mono") || 
+    cleanFamily.includes("code") ||
+    cleanFamily.includes("menlo")
+  ) {
     const fontName = isBold && isItalic
-      ? StandardFonts.TimesRomanBoldItalic
+      ? StandardFonts.CourierBoldOblique
       : isBold
-      ? StandardFonts.TimesRomanBold
+      ? StandardFonts.CourierBold
       : isItalic
-      ? StandardFonts.TimesRomanItalic
-      : StandardFonts.TimesRoman;
+      ? StandardFonts.CourierOblique
+      : StandardFonts.Courier;
 
     if (embeddedFontCache.has(fontName)) {
       return { font: embeddedFontCache.get(fontName)!, isCustom: false };
@@ -217,14 +224,20 @@ export async function embedCustomOrStandardFont(
     return { font: embedded, isCustom: false };
   }
 
-  if (cleanFamily.includes("courier") || cleanFamily.includes("consolas") || cleanFamily.includes("mono")) {
+  // Check Serif (strict: must NOT include "sans")
+  if (
+    cleanFamily.includes("times") || 
+    cleanFamily.includes("georgia") || 
+    cleanFamily.includes("garamond") || 
+    (cleanFamily.includes("serif") && !cleanFamily.includes("sans"))
+  ) {
     const fontName = isBold && isItalic
-      ? StandardFonts.CourierBoldOblique
+      ? StandardFonts.TimesRomanBoldItalic
       : isBold
-      ? StandardFonts.CourierBold
+      ? StandardFonts.TimesRomanBold
       : isItalic
-      ? StandardFonts.CourierOblique
-      : StandardFonts.Courier;
+      ? StandardFonts.TimesRomanItalic
+      : StandardFonts.TimesRoman;
 
     if (embeddedFontCache.has(fontName)) {
       return { font: embeddedFontCache.get(fontName)!, isCustom: false };
