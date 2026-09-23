@@ -3074,10 +3074,10 @@ function detectFontDetails(fontName?: string, styleObj?: any) {
                 remainingRedactions.push({
                   pageIndex: pIdx,
                   pdfRect: {
-                    x: child.x - 1,
-                    y: child.y - (fSize * 0.22),
-                    width: child.width + 2,
-                    height: fSize * 1.04,
+                    x: child.x,
+                    y: child.y - (fSize * 0.05),
+                    width: child.width,
+                    height: fSize * 0.81,
                   },
                 });
               }
@@ -3088,13 +3088,13 @@ function detectFontDetails(fontName?: string, styleObj?: any) {
               const origH = block.origPdfHeight !== undefined ? block.origPdfHeight : block.pdfHeight;
               const fSize = block.fontSize || 12;
               const redactY = block.minY !== undefined
-                ? block.minY - (fSize * 0.22)
-                : (origY - (fSize * 0.22));
+                ? block.minY - (fSize * 0.05)
+                : (origY - (fSize * 0.05));
               const redactH = (block.minY !== undefined && block.maxY !== undefined)
-                ? (block.maxY - block.minY) + (fSize * 0.22)
-                : origH;
-              const redactX = (block.minX !== undefined ? block.minX : origX) - 1;
-              const redactW = Math.max(origW, (block.maxX !== undefined && block.minX !== undefined) ? (block.maxX - block.minX) : origW) + 2;
+                ? (block.maxY - block.minY) + (fSize * 0.05)
+                : Math.min(origH, fSize * 0.81);
+              const redactX = (block.minX !== undefined ? block.minX : origX);
+              const redactW = Math.max(origW, (block.maxX !== undefined && block.minX !== undefined) ? (block.maxX - block.minX) : origW);
 
               remainingRedactions.push({
                 pageIndex: pIdx,
@@ -3168,10 +3168,10 @@ function detectFontDetails(fontName?: string, styleObj?: any) {
               for (const child of block.children) {
                 const fSize = child.height || block.fontSize || 12;
                 page.drawRectangle({
-                  x: child.x - 1,
-                  y: child.y - (fSize * 0.22),
-                  width: child.width + 2,
-                  height: fSize * 1.04,
+                  x: child.x,
+                  y: child.y - (fSize * 0.05),
+                  width: child.width,
+                  height: fSize * 0.81,
                   color: parseColorToRgb(block.maskColor || "#ffffff"),
                 });
               }
@@ -3182,13 +3182,13 @@ function detectFontDetails(fontName?: string, styleObj?: any) {
               const origH = block.origPdfHeight !== undefined ? block.origPdfHeight : block.pdfHeight;
               const fSize = block.fontSize || 12;
               const redactY = block.minY !== undefined
-                ? block.minY - (fSize * 0.22)
-                : (origY - (fSize * 0.22));
+                ? block.minY - (fSize * 0.05)
+                : (origY - (fSize * 0.05));
               const redactH = (block.minY !== undefined && block.maxY !== undefined)
-                ? (block.maxY - block.minY) + (fSize * 0.22)
-                : origH;
-              const redactX = (block.minX !== undefined ? block.minX : origX) - 1;
-              const redactW = Math.max(origW, (block.maxX !== undefined && block.minX !== undefined) ? (block.maxX - block.minX) : origW) + 2;
+                ? (block.maxY - block.minY) + (fSize * 0.05)
+                : Math.min(origH, fSize * 0.81);
+              const redactX = (block.minX !== undefined ? block.minX : origX);
+              const redactW = Math.max(origW, (block.maxX !== undefined && block.minX !== undefined) ? (block.maxX - block.minX) : origW);
 
               page.drawRectangle({
                 x: redactX,
@@ -4942,29 +4942,57 @@ function detectFontDetails(fontName?: string, styleObj?: any) {
                   const curOrigScreenW = block.origVWidth !== undefined ? block.origVWidth : (origPdfW * scale);
                   const curOrigScreenH = block.origVHeight !== undefined ? block.origVHeight : (origPdfH * scale);
 
-                  const maskLeft = Math.max(0, curOrigScreenX - 2);
-                  const maskTop = Math.max(0, curOrigScreenY - 2);
-                  const maxAllowedWidth = Math.max(0, paperW - maskLeft);
-                  const maxAllowedHeight = Math.max(0, paperH - maskTop);
-                  const maskWidth = Math.min(curOrigScreenW + 4, maxAllowedWidth);
-                  const maskHeight = Math.min(curOrigScreenH + 4, maxAllowedHeight);
+                  // Precision line-level or snug single-line mask coordinates (ZERO spillover to adjacent lines)
+                  const fallbackFSize = block.fontSize || 12;
+                  const fallbackScreenBaselineY = (rawPageH - (block.origPdfY ?? block.pdfY)) * scale;
+                  const fallbackMaskTop = fallbackScreenBaselineY - (fallbackFSize * scale * 0.76);
+                  const fallbackMaskHeight = fallbackFSize * scale * 0.81;
+                  const fallbackMaskLeft = (block.origPdfX ?? block.pdfX) * scale;
+                  const fallbackMaskWidth = (block.origPdfWidth ?? block.pdfWidth) * scale;
 
                   return (
                     <React.Fragment key={block.id}>
                       {/* Layer 1: Static Mask to permanently hide original rasterized text on canvas bitmap */}
                       {(isModified || isSelected || isDeleted) && (
-                        <div
-                          className="absolute pointer-events-none select-none"
-                          style={{
-                            left: `${maskLeft}px`,
-                            top: `${maskTop}px`,
-                            width: `${maskWidth}px`,
-                            height: `${maskHeight}px`,
-                            backgroundColor: block.maskColor || "#ffffff",
-                            opacity: 1,
-                            zIndex: 5,
-                          }}
-                        />
+                        block.children && block.children.length > 0 ? (
+                          block.children.map((child, ci) => {
+                            const cFSize = child.height || block.fontSize || 12;
+                            const cScreenBaselineY = (rawPageH - child.y) * scale;
+                            const cMaskTop = cScreenBaselineY - (cFSize * scale * 0.80);
+                            const cMaskHeight = cFSize * scale * 0.95;
+                            const cMaskLeft = (child.x - 0.5) * scale;
+                            const cMaskWidth = (child.width + 1) * scale;
+
+                            return (
+                              <div
+                                key={`mask_${block.id}_${ci}`}
+                                className="absolute pointer-events-none select-none"
+                                style={{
+                                  left: `${cMaskLeft}px`,
+                                  top: `${cMaskTop}px`,
+                                  width: `${cMaskWidth}px`,
+                                  height: `${cMaskHeight}px`,
+                                  backgroundColor: block.maskColor || "#ffffff",
+                                  opacity: 1,
+                                  zIndex: 5,
+                                }}
+                              />
+                            );
+                          })
+                        ) : (
+                          <div
+                            className="absolute pointer-events-none select-none"
+                            style={{
+                              left: `${fallbackMaskLeft}px`,
+                              top: `${fallbackMaskTop}px`,
+                              width: `${fallbackMaskWidth}px`,
+                              height: `${fallbackMaskHeight}px`,
+                              backgroundColor: block.maskColor || "#ffffff",
+                              opacity: 1,
+                              zIndex: 5,
+                            }}
+                          />
+                        )
                       )}
 
                       {/* Layer 2: Interactive / Content Layer */}

@@ -81,7 +81,7 @@ self.onmessage = async (e: MessageEvent<WorkerInputMessage>) => {
 
       const bounds = page.getBounds();
       const pageHeight = bounds[3];
-      const padding = 1.5;
+      const padding = 0;
 
       for (const item of items) {
         let rect = item.rect;
