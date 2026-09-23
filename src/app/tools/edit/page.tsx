@@ -74,6 +74,7 @@ import { detectPageImages, DetectedPdfImage } from "@/lib/pdf-editor/image-detec
 import { useMuPDF, mapPdfToMuPdfRect } from "@/hooks/useMuPDF";
 import type { RedactionItem } from "@/workers/mupdf.worker";
 import { clusterPdfTextItems } from "@/lib/pdf-editor/spatial-clustering";
+import { embedCustomOrStandardFont, sanitizeTextForPdf } from "@/lib/pdf-editor/font-registry";
 
 if (typeof window !== "undefined") {
   pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
@@ -3049,31 +3050,8 @@ function detectFontDetails(fontName?: string, styleObj?: any) {
       
       // Lazy font cache to avoid embedding unused fonts and speed up export compilation drastically
       const fontCache = new Map<string, any>();
-      const getEmbeddedFont = async (fontName: StandardFonts) => {
-        if (fontCache.has(fontName)) return fontCache.get(fontName);
-        const embedded = await doc.embedFont(fontName);
-        fontCache.set(fontName, embedded);
-        return embedded;
-      };
-
       const pickFontAsync = async (family?: string, bold?: boolean, italic?: boolean) => {
-        const f = (family || "").toLowerCase();
-        if (f.includes("times") || f.includes("georgia") || f.includes("garamond") || f.includes("playfair") || f.includes("merriweather") || f.includes("serif")) {
-          if (bold && italic) return getEmbeddedFont(StandardFonts.TimesRomanBoldItalic);
-          if (bold) return getEmbeddedFont(StandardFonts.TimesRomanBold);
-          if (italic) return getEmbeddedFont(StandardFonts.TimesRomanItalic);
-          return getEmbeddedFont(StandardFonts.TimesRoman);
-        }
-        if (f.includes("courier") || f.includes("consolas") || f.includes("mono")) {
-          if (bold && italic) return getEmbeddedFont(StandardFonts.CourierBoldOblique);
-          if (bold) return getEmbeddedFont(StandardFonts.CourierBold);
-          if (italic) return getEmbeddedFont(StandardFonts.CourierOblique);
-          return getEmbeddedFont(StandardFonts.Courier);
-        }
-        if (bold && italic) return getEmbeddedFont(StandardFonts.HelveticaBoldOblique);
-        if (bold) return getEmbeddedFont(StandardFonts.HelveticaBold);
-        if (italic) return getEmbeddedFont(StandardFonts.HelveticaOblique);
-        return getEmbeddedFont(StandardFonts.Helvetica);
+        return embedCustomOrStandardFont(doc, fontCache, family, bold, italic);
       };
 
       const pages = doc.getPages();
@@ -3141,7 +3119,7 @@ function detectFontDetails(fontName?: string, styleObj?: any) {
               const defaultLineHeight = (block.fontSize || 12) * 1.25;
 
               for (const span of spans) {
-                const spanFont = await pickFontAsync(span.fontFamily || block.fontFamily, span.isBold, span.isItalic);
+                const { font: spanFont, isCustom } = await pickFontAsync(span.fontFamily || block.fontFamily, span.isBold, span.isItalic);
                 const spanColor = parseColorToRgb(span.color || block.color);
                 const spanSize = span.fontSize || block.fontSize || 12;
 
@@ -3151,7 +3129,7 @@ function detectFontDetails(fontName?: string, styleObj?: any) {
                     currentX = block.pdfX;
                     currentY -= defaultLineHeight;
                   }
-                  const chunk = lines[li].replace(/[^\x00-\x7F\xA0-\xFF]/g, " ");
+                  const chunk = sanitizeTextForPdf(lines[li], isCustom);
                   if (chunk.length > 0) {
                     page.drawText(chunk, {
                       x: currentX,
@@ -3173,12 +3151,12 @@ function detectFontDetails(fontName?: string, styleObj?: any) {
               const textColor = parseColorToRgb(block.color);
               const isBold = block.fontWeight === "bold" || !!block.isBold;
               const isItalic = block.fontStyle === "italic" || !!block.isItalic;
-              const font = await pickFontAsync(block.fontFamily, isBold, isItalic);
+              const { font, isCustom } = await pickFontAsync(block.fontFamily, isBold, isItalic);
               const size = block.fontSize || 12;
               const lineHeight = size * 1.25;
 
               lines.forEach((line, index) => {
-                const safeText = line.replace(/[^\x00-\x7F\xA0-\xFF]/g, " ");
+                const safeText = sanitizeTextForPdf(line, isCustom);
                 page.drawText(safeText, {
                   x: block.pdfX,
                   // Subtract (index * lineHeight) to move down for each new line
@@ -3439,7 +3417,7 @@ function detectFontDetails(fontName?: string, styleObj?: any) {
             const defaultLineHeight = (elem.fontSize || 14) * 1.25;
 
             for (const span of spans) {
-              const spanFont = await pickFontAsync(span.fontFamily || elem.fontFamily, span.isBold, span.isItalic);
+              const { font: spanFont, isCustom } = await pickFontAsync(span.fontFamily || elem.fontFamily, span.isBold, span.isItalic);
               const spanColor = parseColorToRgb(span.color || elem.color);
               const spanSize = span.fontSize || elem.fontSize || 14;
 
@@ -3449,7 +3427,7 @@ function detectFontDetails(fontName?: string, styleObj?: any) {
                   currentX = elem.pdfX;
                   currentY -= defaultLineHeight;
                 }
-                const chunk = lines[li].replace(/[^\x00-\x7F\xA0-\xFF]/g, " ");
+                const chunk = sanitizeTextForPdf(lines[li], isCustom);
                 if (chunk.length > 0) {
                   page.drawText(chunk, {
                     x: currentX,
@@ -3467,9 +3445,9 @@ function detectFontDetails(fontName?: string, styleObj?: any) {
               }
             }
           } else {
-            const safeText = rawText.replace(/[^\x00-\x7F\xA0-\xFF]/g, " ");
             const textColor = parseColorToRgb(elem.color);
-            const textFont = await pickFontAsync(elem.fontFamily, elem.isBold, elem.isItalic);
+            const { font: textFont, isCustom } = await pickFontAsync(elem.fontFamily, elem.isBold, elem.isItalic);
+            const safeText = sanitizeTextForPdf(rawText, isCustom);
 
             page.drawText(safeText, {
               x: elem.pdfX,
@@ -3555,7 +3533,7 @@ function detectFontDetails(fontName?: string, styleObj?: any) {
         }
       }
 
-      const pdfBytes = await doc.save({ useObjectStreams: false });
+      const pdfBytes = await doc.save({ useObjectStreams: true });
       const blob = new Blob([pdfBytes as any], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
       const downloadName = fileName.endsWith(".pdf") ? `edited_${fileName}` : `${fileName}.pdf`;
