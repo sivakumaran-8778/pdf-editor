@@ -34,3 +34,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local qa / test artifacts
+/scratch/
+qa_check.mjs
+qa_suite_new.mjs
+test-stamp.png
+sample-test.pdf
+
