@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useState, useRef } from "react";
-import { Upload, FileUp, Sparkles, Shield, AlertCircle, Zap } from "lucide-react";
+import { Upload, FileUp, Sparkles, Shield, AlertCircle, Zap, Lock, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface FileUploadProps {
@@ -103,10 +103,10 @@ export function FileUpload({
   return (
     <div className="w-full">
       <div
-        className={`relative border-2 border-dashed rounded-2xl p-8 sm:p-14 text-center transition-all duration-200 cursor-pointer ${
+        className={`relative border-2 border-dashed rounded-3xl p-8 sm:p-14 text-center transition-all duration-300 cursor-pointer ${
           isDragging
-            ? "border-red-500 bg-red-500/5 ring-4 ring-red-500/10 scale-[1.008]"
-            : "border-border/80 hover:border-red-500/50 hover:bg-slate-50/50 bg-background/50 shadow-sm"
+            ? "border-rose-500 bg-rose-500/5 ring-4 ring-rose-500/10 scale-[1.008]"
+            : "border-slate-300/80 hover:border-rose-500/60 hover:bg-slate-50/70 bg-slate-50/30 shadow-xs"
         }`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -122,27 +122,27 @@ export function FileUpload({
           onChange={handleFileInput}
         />
 
-        <div className="flex flex-col items-center justify-center space-y-4 max-w-md mx-auto">
-          {/* Glowing icon badge */}
-          <div className={`p-4 rounded-2xl transition-transform duration-200 ${
+        <div className="flex flex-col items-center justify-center space-y-5 max-w-md mx-auto">
+          {/* Glowing animated icon badge */}
+          <div className={`p-4 rounded-2xl transition-all duration-300 ${
             isDragging 
-              ? "bg-red-600 text-white scale-110 shadow-lg shadow-red-500/30" 
-              : "bg-red-500/10 text-red-600 group-hover:scale-105"
+              ? "bg-rose-600 text-white scale-110 shadow-xl shadow-rose-500/30" 
+              : "bg-rose-500/10 text-rose-600 border border-rose-500/20 shadow-xs group-hover:scale-105"
           }`}>
             <FileUp className="h-10 w-10" />
           </div>
 
           <div className="space-y-1.5">
-            <h3 className="font-bold text-xl sm:text-2xl tracking-tight text-foreground">
+            <h3 className="font-extrabold text-xl sm:text-2xl tracking-tight text-slate-900">
               {title || (multiple ? "Select or Drop PDF Files" : "Select or Drop your PDF")}
             </h3>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-slate-500">
               {subtitle || (multiple ? "Drag and drop multiple documents to combine them" : "Drag and drop your file here, or click to browse from device")}
             </p>
           </div>
 
           {error && (
-            <div className="flex items-center gap-2 p-3 text-xs text-destructive bg-destructive/10 border border-destructive/20 rounded-xl">
+            <div className="flex items-center gap-2 p-3 text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded-xl">
               <AlertCircle className="h-4 w-4 shrink-0" />
               <span>{error}</span>
             </div>
@@ -152,7 +152,7 @@ export function FileUpload({
             <Button 
               type="button" 
               size="lg" 
-              className="bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white shadow-md shadow-red-600/20 px-8 font-semibold rounded-xl gap-2"
+              className="bg-gradient-to-r from-red-600 via-rose-600 to-red-500 hover:from-red-700 hover:to-rose-700 text-white shadow-xl shadow-red-500/25 px-8 font-bold rounded-2xl gap-2 h-12 hover:-translate-y-0.5 transition-all"
               onClick={(e) => {
                 e.stopPropagation();
                 triggerFileInput();
@@ -163,17 +163,17 @@ export function FileUpload({
             </Button>
           </div>
 
-          {/* Feature & Size footer */}
-          <div className="flex flex-wrap items-center justify-center gap-4 text-[11px] text-muted-foreground/80 pt-4 border-t border-border/60 w-full">
-            <div className="flex items-center gap-1.5 text-blue-600 font-medium">
-              <Zap className="h-3 w-3" />
-              <span>High-speed document processing</span>
+          {/* Privacy & Size Trust row */}
+          <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-slate-500 pt-5 border-t border-slate-200/80 w-full font-medium">
+            <div className="flex items-center gap-1.5 text-emerald-600 font-semibold">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              <span>100% Private (No uploads)</span>
             </div>
             <span>•</span>
             <span>Up to {maxSizeMB}MB</span>
             <span>•</span>
-            <div className="flex items-center gap-1 text-primary">
-              <Sparkles className="h-3 w-3" />
+            <div className="flex items-center gap-1 text-slate-600">
+              <Sparkles className="h-3 w-3 text-amber-500" />
               <span>Instant preview</span>
             </div>
           </div>

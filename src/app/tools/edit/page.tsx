@@ -3633,18 +3633,26 @@ function detectFontDetails(fontName?: string, styleObj?: any) {
       fullWidth={true}
     >
       {!file ? (
-        // Empty Upload State
-        <div className="flex-1 flex items-center justify-center p-6 sm:p-12 min-h-screen bg-slate-50">
-          <div className="w-full max-w-2xl bg-white border border-border/80 shadow-2xl rounded-3xl p-8 sm:p-12 space-y-8">
-            <div className="text-center space-y-2">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-600 text-xs font-semibold">
+        // Empty Upload State with Studio Launchpad Styling
+        <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-12 min-h-screen bg-slate-50/80 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(239,68,68,0.06),rgba(255,255,255,0))] relative">
+          {/* Top Return Navigation */}
+          <div className="absolute top-6 left-6 sm:top-8 sm:left-8">
+            <Link href="/" prefetch={true} className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/90 border border-slate-200/80 text-xs font-semibold text-slate-700 hover:text-slate-900 shadow-2xs hover:bg-slate-50 transition-colors">
+              <ArrowLeft className="h-3.5 w-3.5" />
+              <span>Back to All Tools</span>
+            </Link>
+          </div>
+
+          <div className="w-full max-w-2xl bg-white/95 backdrop-blur-xl border border-slate-200/80 shadow-2xl shadow-slate-200/50 rounded-3xl p-8 sm:p-12 space-y-8">
+            <div className="text-center space-y-2.5">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-600 text-xs font-semibold">
                 <Sparkles className="h-3.5 w-3.5" />
                 <span>Desktop Studio PDF Suite</span>
               </div>
               <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-slate-900">
                 Open any PDF to edit text directly
               </h2>
-              <p className="text-sm sm:text-base text-muted-foreground max-w-lg mx-auto">
+              <p className="text-sm sm:text-base text-slate-600 max-w-lg mx-auto leading-relaxed">
                 Upload your contract, certificate, resume, or document. Click to type anywhere, edit in-place, add signatures, or draw.
               </p>
             </div>
@@ -3653,10 +3661,10 @@ function detectFontDetails(fontName?: string, styleObj?: any) {
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-border/60" />
+                <span className="w-full border-t border-slate-200/80" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-3 text-muted-foreground font-medium">Or start with a clean page</span>
+                <span className="bg-white px-3 text-slate-400 font-semibold tracking-wider">Or start with a clean page</span>
               </div>
             </div>
 
@@ -3665,39 +3673,40 @@ function detectFontDetails(fontName?: string, styleObj?: any) {
                 size="lg" 
                 variant="outline" 
                 onClick={handleCreateNew} 
-                className="gap-2 rounded-xl font-semibold border-border hover:bg-slate-100"
+                className="gap-2 rounded-2xl font-bold border-slate-200/90 hover:bg-slate-100/80 text-slate-800 shadow-xs h-11 px-6"
               >
-                <PlusCircle className="h-5 w-5 text-blue-600" /> Create Blank A4 PDF
+                <PlusCircle className="h-4 w-4 text-rose-600" /> 
+                <span>Create Blank A4 Document</span>
               </Button>
             </div>
           </div>
         </div>
       ) : (
-        // Full Desktop Studio Workspace
-        <div className="fixed inset-0 z-40 flex flex-col h-screen w-screen overflow-hidden bg-slate-100">
+        // Full Desktop Studio Workspace with Precision Dot Matrix Grid
+        <div className="fixed inset-0 z-40 flex flex-col h-screen w-screen overflow-hidden bg-slate-100/90 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:20px_20px]">
           {/* Row 1: Unified Document & Navigation Header */}
-          <div className="h-11 bg-white border-b border-border/80 px-3 flex items-center justify-between gap-2 shrink-0 z-30">
+          <div className="h-12 bg-white/95 backdrop-blur-xl border-b border-slate-200/80 px-3.5 flex items-center justify-between gap-2 shrink-0 z-30 shadow-2xs">
             {/* Left: Navigation & Document Rename */}
             <div className="flex items-center gap-2 shrink-0 min-w-0">
               <Link href="/" prefetch={true}>
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground shrink-0" title="Back to All Tools">
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl shrink-0" title="Back to All Tools">
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
               </Link>
 
               <div className="flex items-center gap-1.5 min-w-0">
-                <FileText className="h-4 w-4 text-red-600 shrink-0" />
+                <FileText className="h-4 w-4 text-rose-600 shrink-0" />
                 <Input
                   value={fileName}
                   onChange={(e) => setFileName(e.target.value)}
-                  className="h-7 font-bold text-xs sm:text-sm w-32 sm:w-44 md:w-52 border-transparent hover:border-border focus-visible:border-primary bg-transparent px-1 shadow-none truncate"
+                  className="h-7.5 font-bold text-xs sm:text-sm w-32 sm:w-44 md:w-52 border border-transparent hover:border-slate-200 focus-visible:border-slate-400 rounded-lg bg-transparent px-1.5 shadow-none truncate transition-colors"
                   title="Click to rename document"
                 />
               </div>
 
               {/* Auto-Save Indicator */}
-              <div className="hidden xl:flex items-center gap-1 text-[11px] font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md shrink-0">
-                <CheckCircle2 className="h-3 w-3" />
+              <div className="hidden xl:flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full shrink-0">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 <span>Saved</span>
               </div>
             </div>
@@ -3709,7 +3718,7 @@ function detectFontDetails(fontName?: string, styleObj?: any) {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                  className="h-7.5 w-7.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100"
                   onClick={handleUndo}
                   disabled={!historyManager.canUndo()}
                   title="Undo (Ctrl+Z)"
@@ -3719,7 +3728,7 @@ function detectFontDetails(fontName?: string, styleObj?: any) {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                  className="h-7.5 w-7.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100"
                   onClick={handleRedo}
                   disabled={!historyManager.canRedo()}
                   title="Redo (Ctrl+Y)"
@@ -3729,15 +3738,15 @@ function detectFontDetails(fontName?: string, styleObj?: any) {
               </div>
 
               {/* Fit Controls */}
-              <div className="flex items-center gap-1 border-l border-border/60 pl-1.5">
+              <div className="flex items-center gap-1 border-l border-slate-200/80 pl-1.5">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={handleFitPage}
-                  className="h-7 px-2 text-[11px] font-semibold gap-1 border-border/80 hover:bg-slate-100"
+                  className="h-7.5 px-2.5 text-[11px] font-semibold gap-1 rounded-lg border-slate-200 hover:bg-slate-100 text-slate-700"
                   title="Fit entire page to screen"
                 >
-                  <Minimize2 className="h-3 w-3 text-blue-600" />
+                  <Minimize2 className="h-3 w-3 text-rose-600" />
                   <span className="hidden md:inline">Fit Page</span>
                 </Button>
 
@@ -3745,7 +3754,7 @@ function detectFontDetails(fontName?: string, styleObj?: any) {
                   variant="outline"
                   size="sm"
                   onClick={handleFitWidth}
-                  className="h-7 px-2 text-[11px] font-semibold gap-1 border-border/80 hover:bg-slate-100"
+                  className="h-7.5 px-2.5 text-[11px] font-semibold gap-1 rounded-lg border-slate-200 hover:bg-slate-100 text-slate-700"
                   title="Fit width of document"
                 >
                   <ChevronsLeftRight className="h-3 w-3 text-slate-600" />
@@ -3754,11 +3763,11 @@ function detectFontDetails(fontName?: string, styleObj?: any) {
               </div>
 
               {/* Free-form Zoom Suite (Slider, Editable Input, Stepper) */}
-              <div className="flex items-center gap-1 border border-border/80 rounded-md bg-white h-7 px-1">
+              <div className="flex items-center gap-1 border border-slate-200 rounded-xl bg-slate-50/80 h-7.5 px-1.5 shadow-2xs">
                 <Button 
                   size="icon" 
                   variant="ghost" 
-                  className="h-6 w-6 rounded-xs p-0 text-muted-foreground hover:text-foreground"
+                  className="h-6 w-6 rounded-md p-0 text-slate-500 hover:text-slate-900"
                   onClick={() => setScale(s => Math.max(0.25, +(s - 0.1).toFixed(2)))}
                   title="Zoom Out"
                 >
@@ -3771,7 +3780,7 @@ function detectFontDetails(fontName?: string, styleObj?: any) {
                   step="5"
                   value={Math.round(scale * 100)}
                   onChange={(e) => setScale(+(Number(e.target.value) / 100).toFixed(2))}
-                  className="w-14 md:w-20 h-1.5 accent-blue-600 cursor-pointer hidden sm:inline-block"
+                  className="w-14 md:w-20 h-1.5 accent-rose-600 cursor-pointer hidden sm:inline-block"
                   title="Free Zoom Slider (25% - 400%)"
                 />
                 <input
@@ -3794,13 +3803,13 @@ function detectFontDetails(fontName?: string, styleObj?: any) {
                       (e.target as HTMLInputElement).blur();
                     }
                   }}
-                  className="w-11 text-center text-[11px] font-mono font-bold bg-transparent border-0 focus:outline-none focus:ring-1 focus:ring-blue-500 rounded px-0.5"
+                  className="w-11 text-center text-[11px] font-mono font-bold bg-transparent border-0 focus:outline-none focus:ring-1 focus:ring-rose-500 rounded px-0.5 text-slate-800"
                   title="Click to type custom zoom %"
                 />
                 <Button 
                   size="icon" 
                   variant="ghost" 
-                  className="h-6 w-6 rounded-xs p-0 text-muted-foreground hover:text-foreground"
+                  className="h-6 w-6 rounded-md p-0 text-slate-500 hover:text-slate-900"
                   onClick={() => setScale(s => Math.min(4.0, +(s + 0.1).toFixed(2)))}
                   title="Zoom In"
                 >
@@ -3816,10 +3825,10 @@ function detectFontDetails(fontName?: string, styleObj?: any) {
                   setPreviewMode(!previewMode);
                   setSelectedElementId(null);
                 }}
-                className={`h-7 px-2 text-[11px] font-semibold gap-1 transition-all ${
+                className={`h-7.5 px-2.5 text-[11px] font-semibold gap-1 rounded-lg transition-all ${
                   previewMode 
-                    ? "bg-blue-600 text-white hover:bg-blue-700 shadow-xs" 
-                    : "border-border/80 hover:bg-slate-100 text-muted-foreground hover:text-foreground"
+                    ? "bg-slate-900 text-white hover:bg-slate-800 shadow-xs" 
+                    : "border-slate-200 hover:bg-slate-100 text-slate-600 hover:text-slate-900"
                 }`}
                 title="Toggle clean preview mode"
               >
@@ -3833,11 +3842,11 @@ function detectFontDetails(fontName?: string, styleObj?: any) {
               <Button
                 variant="outline"
                 size="sm"
-                className="h-7 text-xs text-slate-700 hover:text-slate-900 border-border/80 hover:bg-slate-100 flex gap-1 px-2 font-medium"
+                className="h-7.5 text-xs text-slate-700 hover:text-slate-900 border-slate-200 hover:bg-slate-100 flex gap-1 px-2.5 rounded-lg font-medium"
                 onClick={() => openDocInputRef.current?.click()}
                 title="Open a different PDF document"
               >
-                <Upload className="h-3.5 w-3.5 text-blue-600" />
+                <Upload className="h-3.5 w-3.5 text-rose-600" />
                 <span className="hidden lg:inline">Open PDF</span>
               </Button>
               <input
@@ -3855,7 +3864,7 @@ function detectFontDetails(fontName?: string, styleObj?: any) {
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 text-xs text-muted-foreground hover:text-destructive flex gap-1 px-2"
+                className="h-7.5 text-xs text-slate-500 hover:text-rose-600 rounded-lg flex gap-1 px-2"
                 onClick={() => {
                   setPageTextBlocks({});
                   setCustomElements([]);
@@ -3874,7 +3883,7 @@ function detectFontDetails(fontName?: string, styleObj?: any) {
                 variant="ghost"
                 size="icon"
                 onClick={() => setShowSidebar(!showSidebar)}
-                className="h-7 w-7 text-muted-foreground flex"
+                className="h-7.5 w-7.5 rounded-lg text-slate-500 hover:text-slate-900 flex"
                 title="Toggle Sidebar"
               >
                 {showSidebar ? <PanelLeftClose className="h-3.5 w-3.5" /> : <PanelLeft className="h-3.5 w-3.5" />}
@@ -3884,7 +3893,7 @@ function detectFontDetails(fontName?: string, styleObj?: any) {
                 size="sm"
                 onClick={handleSave}
                 disabled={isProcessing}
-                className="h-7 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-semibold shadow-xs gap-1.5 px-3 rounded-lg text-xs"
+                className="h-8 bg-gradient-to-r from-red-600 via-rose-600 to-red-500 hover:from-red-700 hover:to-rose-700 text-white font-bold shadow-md shadow-red-500/25 gap-1.5 px-3.5 rounded-xl text-xs hover:-translate-y-0.5 transition-all"
               >
                 <Download className="h-3.5 w-3.5" />
                 <span>{isProcessing ? "Compiling..." : "Export PDF"}</span>
@@ -3893,7 +3902,7 @@ function detectFontDetails(fontName?: string, styleObj?: any) {
           </div>
 
           {/* Row 2: Studio Tools & Active Properties Ribbon (Zero-Scroll Compact Layout) */}
-          <div className="h-10 bg-slate-50/95 border-b border-border/80 px-3 flex items-center justify-between gap-2 shrink-0 z-20 select-none">
+          <div className="h-11 bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-3.5 flex items-center justify-between gap-2 shrink-0 z-20 select-none shadow-2xs">
             {/* Left: Primary Action Tools Group */}
             <div className="flex items-center gap-1 shrink-0">
               {/* In-Place Text */}
@@ -5706,11 +5715,11 @@ function detectFontDetails(fontName?: string, styleObj?: any) {
             </main>
 
             {/* Bottom Compact Navigation Bar (Fixed to Viewport Bottom - Never scrolls away) */}
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-md border border-border/80 rounded-full px-3 py-1 shadow-lg flex items-center gap-2 z-30 pointer-events-auto">
+            <div className="absolute bottom-5 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-full px-3.5 py-1.5 shadow-2xl shadow-slate-900/10 flex items-center gap-2 z-30 pointer-events-auto">
               <Button 
                 size="icon" 
                 variant="ghost" 
-                className="h-7 w-7 rounded-full"
+                className="h-7 w-7 rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100"
                 disabled={currentPage <= 1}
                 onClick={() => { setCurrentPage(p => p - 1); setSelectedElementId(null); }}
                 title="Previous Page"
@@ -5718,14 +5727,14 @@ function detectFontDetails(fontName?: string, styleObj?: any) {
                 <ChevronLeft className="h-3.5 w-3.5" />
               </Button>
               
-              <span className="text-[11px] font-semibold px-2 select-none">
-                Page <strong className="text-foreground">{currentPage}</strong> of {numPages}
+              <span className="text-xs font-semibold px-2 select-none text-slate-600">
+                Page <strong className="text-slate-900 font-bold">{currentPage}</strong> of {numPages}
               </span>
 
               <Button 
                 size="icon" 
                 variant="ghost" 
-                className="h-7 w-7 rounded-full"
+                className="h-7 w-7 rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100"
                 disabled={currentPage >= numPages}
                 onClick={() => { setCurrentPage(p => p + 1); setSelectedElementId(null); }}
                 title="Next Page"
@@ -5737,33 +5746,33 @@ function detectFontDetails(fontName?: string, styleObj?: any) {
 
           {/* PDF Export Live Pre-Download Preview Modal */}
           {exportPreviewData && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 sm:p-6 animate-in fade-in duration-200">
-              <div className="bg-white rounded-2xl shadow-2xl border border-border/80 flex flex-col w-full max-w-5xl h-[90vh] overflow-hidden">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-md p-4 sm:p-6 animate-in fade-in duration-200">
+              <div className="bg-white rounded-3xl shadow-2xl border border-slate-200/80 flex flex-col w-full max-w-5xl h-[90vh] overflow-hidden">
                 {/* Modal Header */}
-                <div className="h-14 px-5 border-b border-border/70 flex items-center justify-between bg-slate-50/80 shrink-0">
+                <div className="h-16 px-6 border-b border-slate-200/80 flex items-center justify-between bg-white/95 backdrop-blur-xl shrink-0">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center text-red-600">
-                      <FileText className="h-4 w-4" />
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-red-600 to-rose-500 flex items-center justify-center text-white shadow-md shadow-red-500/20">
+                      <FileText className="h-5 w-5" />
                     </div>
                     <div>
                       <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                         PDF Export Preview
-                        <span className="text-[11px] font-normal text-muted-foreground bg-white border border-border/60 px-2 py-0.5 rounded-full">
+                        <span className="text-[11px] font-semibold text-slate-600 bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded-full">
                           {exportPreviewData.pageCount} {exportPreviewData.pageCount === 1 ? "page" : "pages"} • {exportPreviewData.sizeKb} KB
                         </span>
                       </h3>
-                      <p className="text-xs text-muted-foreground truncate max-w-md">
+                      <p className="text-xs text-slate-500 truncate max-w-md">
                         {exportPreviewData.fileName}
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2.5">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={handleCloseExportPreview}
-                      className="h-8 text-xs font-semibold"
+                      className="h-9 px-4 text-xs font-semibold rounded-xl border-slate-200 hover:bg-slate-100 text-slate-700"
                     >
                       Back to Editing
                     </Button>
@@ -5773,20 +5782,20 @@ function detectFontDetails(fontName?: string, styleObj?: any) {
                         handleDownloadExportedPdf();
                         handleCloseExportPreview();
                       }}
-                      className="h-8 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-semibold gap-1.5 shadow-sm px-4"
+                      className="h-9 bg-gradient-to-r from-red-600 via-rose-600 to-red-500 hover:from-red-700 hover:to-rose-700 text-white font-bold gap-1.5 shadow-md shadow-red-500/25 px-5 rounded-xl hover:-translate-y-0.5 transition-all text-xs sm:text-sm"
                     >
-                      <Download className="h-3.5 w-3.5" />
+                      <Download className="h-4 w-4" />
                       Download PDF
                     </Button>
                   </div>
                 </div>
 
                 {/* Modal Body: High-Fidelity Embedded PDF Viewer */}
-                <div className="flex-1 bg-slate-200 p-2 sm:p-4 min-h-0 overflow-hidden">
+                <div className="flex-1 bg-slate-100 p-3 sm:p-5 min-h-0 overflow-hidden">
                   <iframe
                     src={`${exportPreviewData.url}#toolbar=0`}
                     title="PDF Export Preview"
-                    className="w-full h-full rounded-xl border border-slate-300 bg-white shadow-md transform-gpu"
+                    className="w-full h-full rounded-2xl border border-slate-200/80 bg-white shadow-xl transform-gpu"
                   />
                 </div>
               </div>

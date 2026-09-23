@@ -8,6 +8,7 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Navbar } from "@/components/Navbar";
+import { Footer } from "@/components/Footer";
 
 export const metadata: Metadata = {
   title: "PDF Editor Pro - Free PDF Tools",
@@ -32,13 +33,14 @@ export default function RootLayout({
         />
       </head>
       <body
-        className="font-sans antialiased min-h-screen flex flex-col"
+        className="font-sans antialiased min-h-screen flex flex-col bg-slate-50/50"
       >
         <TooltipProvider>
           <Navbar />
-          <main className="flex-1 min-h-0 bg-muted/30 flex flex-col">
+          <main className="flex-1 min-h-0 flex flex-col">
             {children}
           </main>
+          <Footer />
           <Toaster />
         </TooltipProvider>
       </body>
